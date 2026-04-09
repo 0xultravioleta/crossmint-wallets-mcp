@@ -27,9 +27,8 @@ export interface TokenBalance {
 }
 
 export interface BalanceResult {
-  email: string;
-  chain: Chain;
   address: string;
+  chain: Chain;
   balances: TokenBalance[];
 }
 
@@ -45,7 +44,6 @@ export interface TransferResult {
 }
 
 export interface PayX402Result {
-  email: string;
   url: string;
   transactionSignature: string;
   responseStatus: number;

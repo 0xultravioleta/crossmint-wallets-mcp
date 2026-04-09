@@ -19,7 +19,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getConfig } from "../src/core/client.js";
 import { createWallet } from "../src/core/create-wallet.js";
+import { getBalance } from "../src/core/get-balance.js";
+import { payX402Endpoint } from "../src/core/pay-x402-endpoint.js";
 import type { Chain, CreateWalletResult } from "../src/core/types.js";
+import { startPaywallServer } from "./paywall-server.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CACHE_PATH = join(__dirname, "wallet-cache.json");
@@ -96,11 +99,76 @@ async function main(): Promise<void> {
   console.error("====================");
   console.error("");
 
-  // Phase 2C+ steps will be added here:
-  //   - payX402Endpoint({ url, maxUsdc })
-  //   - getBalance({ chain, owner })
-  //   - transferToken({ chain, owner, to, token, amount })
+  // -------------------------------------------------------------------
+  // Step 2: getBalance — verify funding before Tool 4.
+  // -------------------------------------------------------------------
+  console.error("[getBalance] fetching payer balances...");
+  const balance = await getBalance({ address: wallet.address, chain });
+  console.error("");
+  console.error("=== PAYER BALANCES ===");
+  for (const b of balance.balances) {
+    console.error(`  ${b.symbol.padEnd(8)} ${b.amount} (decimals=${b.decimals})`);
+  }
+  console.error("======================");
+  console.error("");
 
+  // -------------------------------------------------------------------
+  // Step 3: boot local paywall server (x402 merchant).
+  // -------------------------------------------------------------------
+  const merchantKey = cacheKey(chain, "merchant");
+  const merchant = cache[merchantKey];
+  if (!merchant) {
+    throw new Error(
+      `No merchant wallet in cache under "${merchantKey}". Run ` +
+        `'pnpm tsx demo/create-merchant-wallet.ts' first.`,
+    );
+  }
+  console.error(`[merchant] ${merchant.address}`);
+  process.env.PAYWALL_MERCHANT_ADDRESS = merchant.address;
+
+  const paywall = await startPaywallServer();
+
+  // -------------------------------------------------------------------
+  // Step 4: payX402Endpoint — the actual Tool 4 smoke test.
+  // -------------------------------------------------------------------
+  try {
+    console.error("");
+    console.error("[payX402Endpoint] calling paywall...");
+    const result = await payX402Endpoint({
+      url: paywall.url,
+      payerAddress: wallet.address,
+      chain,
+      maxUsdcAtomic: 100000n, // 0.1 USDC guardrail (actual = 0.01 USDC)
+    });
+
+    console.error("");
+    console.error("=== PAYMENT RESULT ===");
+    console.error(`status:    ${result.responseStatus}`);
+    console.error(`tx sig:    ${result.transactionSignature}`);
+    console.error(`explorer:  ${result.explorerLink}`);
+    console.error(`body:      ${JSON.stringify(result.responseBody, null, 2)}`);
+    console.error("======================");
+    console.error("");
+  } finally {
+    await paywall.stop();
+  }
+
+  // -------------------------------------------------------------------
+  // Step 5: balance check after payment — verify the merchant received it.
+  // -------------------------------------------------------------------
+  console.error("[getBalance] fetching merchant balances (post-payment)...");
+  const merchantBalance = await getBalance({
+    address: merchant.address,
+    chain,
+  });
+  console.error("");
+  console.error("=== MERCHANT BALANCES ===");
+  for (const b of merchantBalance.balances) {
+    console.error(`  ${b.symbol.padEnd(8)} ${b.amount} (decimals=${b.decimals})`);
+  }
+  console.error("=========================");
+
+  console.error("");
   console.error("=== smoke test OK ===");
 }
 
