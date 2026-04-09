@@ -1,0 +1,59 @@
+{
+  "name": "crossmint-wallets-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing Crossmint smart wallet primitives as tools for Claude Desktop, Continue.dev, Cline, Codex CLI, and any MCP-native client.",
+  "type": "module",
+  "bin": {
+    "crossmint-wallets-mcp": "dist/mcp/server.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/mcp/server.js",
+    "dev": "tsc --watch",
+    "demo": "tsx demo/smoke-test.ts",
+    "test:smoke": "tsx demo/smoke-test.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "crossmint",
+    "mcp",
+    "model-context-protocol",
+    "x402",
+    "solana",
+    "smart-wallet",
+    "agents",
+    "claude-desktop",
+    "cursor",
+    "continue",
+    "cline",
+    "lobster-cash",
+    "stablecoin"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@crossmint/wallets-sdk": "^1.0.7",
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.9",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "dotenv": "^16.4.5",
+    "rimraf": "^5.0.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
