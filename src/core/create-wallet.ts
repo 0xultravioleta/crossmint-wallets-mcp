@@ -1,27 +1,49 @@
+import { getConfig, getWalletsClient } from "./client.js";
 import type { Chain, CreateWalletResult } from "./types.js";
 
 /**
- * STUB — populated in Phase 3 (Task 3.1 of 03-mcp-build-and-skill-plan.md).
+ * Creates a Crossmint smart wallet on the given chain, using the configured
+ * server recovery signer. This is idempotent for a given (API key + recovery
+ * secret + owner) tuple — calling it twice yields the same wallet.
  *
- * Creates a Crossmint smart wallet for the given email on the given chain.
- * Idempotent: if a wallet already exists for that email, returns the existing
- * wallet instead of throwing.
+ * The `owner` field is an optional free-form identifier (email, user id,
+ * hashed handle, etc). It is passed straight through to the Crossmint API
+ * so downstream tools can resolve a wallet by owner later.
  */
 export async function createWallet(opts: {
-  email: string;
   chain: Chain;
+  owner?: string;
+  alias?: string;
 }): Promise<CreateWalletResult> {
-  throw new Error(
-    `createWallet(${opts.email}, ${opts.chain}) not implemented yet — Phase 3 task 3.1`,
-  );
+  const { chain, owner, alias } = opts;
+  const { recoverySecret } = getConfig();
+  const wallets = getWalletsClient();
+
+  // Crossmint's owner field is a user locator — valid formats are the
+  // literal "COMPANY" or prefixed strings like "email:x@y.com",
+  // "userId:abc", "phoneNumber:+123", "twitter:handle", "x:handle". Free-form
+  // strings are rejected server-side. If the caller did not provide a
+  // locator, we omit the field entirely so the wallet is owned by the API
+  // key account (no specific user).
+  const wallet = await wallets.createWallet({
+    chain,
+    ...(owner ? { owner } : {}),
+    ...(alias ? { alias } : {}),
+    recovery: { type: "server", secret: recoverySecret },
+  });
+
+  return {
+    owner: owner ?? null,
+    chain,
+    address: wallet.address,
+    explorerLink: getExplorerLink(wallet.address, chain),
+  };
 }
 
 export function getExplorerLink(address: string, chain: Chain): string {
   switch (chain) {
     case "solana":
       return `https://explorer.solana.com/address/${address}`;
-    case "solana-devnet":
-      return `https://explorer.solana.com/address/${address}?cluster=devnet`;
     case "base":
       return `https://basescan.org/address/${address}`;
     case "base-sepolia":

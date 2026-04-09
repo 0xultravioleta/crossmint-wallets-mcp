@@ -46,7 +46,7 @@ function readSecret(
 }
 
 function parseChain(value: string | undefined, fallback: Chain): Chain {
-  const allowed: Chain[] = ["solana", "solana-devnet", "base", "base-sepolia"];
+  const allowed: Chain[] = ["solana", "base", "base-sepolia"];
   if (!value) return fallback;
   if ((allowed as string[]).includes(value)) return value as Chain;
   throw new Error(
@@ -69,7 +69,7 @@ export function getConfig(): CrossmintConfig {
     "CROSSMINT_RECOVERY_SECRET_FILE",
     "CROSSMINT_RECOVERY_SECRET",
   );
-  const defaultChain = parseChain(process.env.DEFAULT_CHAIN, "solana-devnet");
+  const defaultChain = parseChain(process.env.DEFAULT_CHAIN, "solana");
   const solanaRpcUrl =
     process.env.SOLANA_RPC_URL?.trim() || "https://api.mainnet-beta.solana.com";
 

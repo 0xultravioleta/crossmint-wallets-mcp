@@ -11,3 +11,4 @@ coverage/
 .turbo/
 .npm/
 *.tsbuildinfo
+demo/wallet-cache.json

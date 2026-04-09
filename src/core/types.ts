@@ -3,14 +3,18 @@
  * schemas (src/mcp/tools.ts) can mirror them without drift.
  */
 
-export type Chain =
-  | "solana"
-  | "solana-devnet"
-  | "base"
-  | "base-sepolia";
+/**
+ * Chain literals we expose on the MCP surface. These must be a subset of
+ * `@crossmint/wallets-sdk`'s `Chain` type. Note that the SDK does NOT expose
+ * a `"solana-devnet"` literal — Solana testnet/devnet is selected by the
+ * Crossmint API key environment (staging key → devnet, production key →
+ * mainnet), not by a separate chain name. EVM chains DO have explicit
+ * testnet literals (e.g. "base-sepolia").
+ */
+export type Chain = "solana" | "base" | "base-sepolia";
 
 export interface CreateWalletResult {
-  email: string;
+  owner: string | null;
   chain: Chain;
   address: string;
   explorerLink: string;
