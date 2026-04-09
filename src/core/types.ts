@@ -33,7 +33,6 @@ export interface BalanceResult {
 }
 
 export interface TransferResult {
-  email: string;
   chain: Chain;
   from: string;
   to: string;
