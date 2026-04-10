@@ -19,7 +19,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerTools } from "./tools.js";
 
 const SERVER_NAME = "crossmint-wallets-mcp";
-const SERVER_VERSION = "0.1.0";
+const SERVER_VERSION = "0.2.3";
 
 async function main(): Promise<void> {
   const server = new McpServer({
