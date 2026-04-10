@@ -40,7 +40,7 @@
     "lobster-cash",
     "stablecoin"
   ],
-  "author": "Saul Jaramillo <saul@lxhxr.com>",
+  "author": "Saul Jaramillo <0xultravioleta@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "@crossmint/wallets-sdk": "^1.0.7",
