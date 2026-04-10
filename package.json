@@ -1,19 +1,22 @@
 {
   "name": "crossmint-wallets-mcp",
-  "version": "0.1.0",
+  "version": "0.2.3",
   "description": "MCP server exposing Crossmint smart wallet primitives as tools for Claude Desktop, Continue.dev, Cline, Codex CLI, and any MCP-native client.",
   "type": "module",
   "bin": {
-    "crossmint-wallets-mcp": "dist/mcp/server.js"
+    "crossmint-wallets-mcp": "scripts/mcp-entry.cjs"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "scripts/postinstall.cjs",
+    "scripts/mcp-entry.cjs",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
+    "postinstall": "node scripts/postinstall.cjs",
     "build": "tsc",
     "start": "node dist/mcp/server.js",
     "dev": "tsc --watch",

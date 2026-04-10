@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+
+// Redirect console.log to stderr BEFORE any imports.
+// The Crossmint SDK (@crossmint/wallets-sdk) emits telemetry via console.log
+// which corrupts the MCP stdio transport (stdout = JSON-RPC only).
+console.log = (...args: unknown[]) => console.error(...args);
+
 /**
  * Crossmint Wallets MCP server — stdio transport entry point.
  *
@@ -6,11 +12,6 @@
  * All human-readable logging MUST go to stderr via `console.error(...)`.
  * Never `console.log` or `process.stdout.write` from anywhere in this
  * server — the MCP client will treat it as malformed protocol traffic.
- *
- * Populated incrementally:
- *   - Phase 2B (this file): minimal server that registers zero tools and
- *     connects the stdio transport. Proves the pipeline works.
- *   - Phase 2E: real tool registration via `registerTools` in ./tools.ts.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

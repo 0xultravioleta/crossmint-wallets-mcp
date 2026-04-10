@@ -10,7 +10,8 @@ interface PaymentRequirements {
   scheme: string;
   network: string;
   asset: string;
-  amount: string;
+  amount?: string;
+  maxAmountRequired?: string; // SniperX and some x402 servers use this instead of amount
   payTo: string;
   maxTimeoutSeconds?: number;
   extra?: Record<string, unknown>;
@@ -136,34 +137,56 @@ export async function payX402Endpoint(opts: {
   }
 
   // -----------------------------------------------------------------------
-  // Step 2: parse the PaymentRequired body
+  // Step 2: parse PaymentRequired from header (v2) or body (v1)
   // -----------------------------------------------------------------------
-  const paymentRequired = (await initialResponse.json()) as PaymentRequired;
+  let paymentRequired: PaymentRequired;
+
+  // x402 v2: payment requirements are base64-encoded in the
+  // `payment-required` response header (e.g. Nansen API)
+  const paymentRequiredHeader = initialResponse.headers.get("payment-required");
+  if (paymentRequiredHeader) {
+    try {
+      const decoded = Buffer.from(paymentRequiredHeader, "base64").toString("utf-8");
+      paymentRequired = JSON.parse(decoded) as PaymentRequired;
+    } catch {
+      throw new Error("Failed to decode base64 payment-required header");
+    }
+  } else {
+    // x402 v1: payment requirements are in the JSON response body
+    paymentRequired = (await initialResponse.json()) as PaymentRequired;
+  }
+
   if (!paymentRequired.accepts?.length) {
     throw new Error("402 response has no accepts[] entries");
   }
 
-  // Pick the first requirement whose network we support
-  const requirement = paymentRequired.accepts.find(
-    (r) => resolveChain(r.network) !== null,
+  // Pick the requirement that matches the caller's chain first, then fall
+  // back to any supported network. This matters when the 402 response
+  // offers multiple networks (e.g. Nansen offers Base + Solana).
+  let requirement = paymentRequired.accepts.find(
+    (r) => resolveChain(r.network) === chain,
   );
+  if (!requirement) {
+    requirement = paymentRequired.accepts.find(
+      (r) => resolveChain(r.network) !== null,
+    );
+  }
   if (!requirement) {
     const offered = paymentRequired.accepts.map((r) => r.network).join(", ");
     throw new Error(
       `No supported payment network in 402 response. Offered: [${offered}]. ` +
-        `Supported: solana (mainnet).`,
+        `Supported: solana, base.`,
     );
   }
 
   const resolvedChain = resolveChain(requirement.network)!;
-  if (resolvedChain !== chain) {
-    throw new Error(
-      `402 requires payment on ${resolvedChain} but caller chain is ${chain}`,
-    );
-  }
 
   // Enforce max payment guardrail
-  const amountAtomic = BigInt(requirement.amount);
+  const amountRaw = requirement.amount ?? requirement.maxAmountRequired;
+  if (!amountRaw) {
+    throw new Error("402 response has no amount or maxAmountRequired field");
+  }
+  const amountAtomic = BigInt(amountRaw);
   if (maxUsdcAtomic != null && amountAtomic > maxUsdcAtomic) {
     throw new Error(
       `402 requires ${amountAtomic} atomic units but maxUsdcAtomic=${maxUsdcAtomic}`,
@@ -191,7 +214,7 @@ export async function payX402Endpoint(opts: {
     typeof requirement.extra?.decimals === "number"
       ? requirement.extra.decimals
       : 6; // USDC default
-  const decimalAmount = atomicToDecimal(requirement.amount, decimals);
+  const decimalAmount = atomicToDecimal(amountRaw, decimals);
 
   console.error(
     `[payX402Endpoint] paying ${decimalAmount} ${tokenSymbol} to ${requirement.payTo} on ${chain}...`,
